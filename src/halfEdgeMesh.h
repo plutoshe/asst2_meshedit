@@ -439,7 +439,7 @@ namespace CMU462
          Vector3D centroid; ///< average of neighbor positions, storing the value computed by Vertex::computeCentroid()
 
          Vector3D normal( void ) const;
-				 
+
          /**
           * Check if if this vertex is on the boundary of the surface
           * \return true if and only if this vertex is on the boundary

@@ -64,7 +64,7 @@ namespace CMU462 {
            edges.clear();
            faces.clear();
       boundaries.clear();
-   
+
       // Since the vertices in our halfedge mesh are stored in a linked list,
       // we will temporarily need to keep track of the correspondence between
       // indices of vertices in our input and pointers to vertices in the new
@@ -76,11 +76,11 @@ namespace CMU462 {
       // our conversion a bit more robust to different types of input, including
       // data that comes from a subset of a full mesh.
       map<Index,VertexIter> indexToVertex; // maps a vertex index to the corresponding vertex
-      
+
       // Also store the vertex degree, i.e., the number of polygons that use each
       // vertex; this information will be used to check that the mesh is manifold.
       map<VertexIter,Size> vertexDegree;
-   
+
       // First, we do some basic sanity checks on the input.
       for( PolygonListCIter p = polygons.begin(); p != polygons.end(); p++ )
       {
@@ -94,18 +94,18 @@ namespace CMU462 {
             cerr << "Error converting polygons to halfedge mesh: each polygon must have at least three vertices." << endl;
             exit( 1 );
          }
-   
+
          // We want to count the number of distinct vertex indices in this
          // polygon, to make sure it's the same as the number of vertices
          // in the polygon---if they disagree, then the polygon is not valid
          // (or at least, for simplicity we don't handle polygons of this type!).
          set<Index> polygonIndices;
-   
+
          // loop over polygon vertices
          for( IndexListCIter i = p->begin(); i != p->end(); i++ )
          {
             polygonIndices.insert( *i );
-   
+
             // allocate one vertex for each new index we encounter
             if( indexToVertex.find( *i ) == indexToVertex.end() )
             {
@@ -119,9 +119,9 @@ namespace CMU462 {
                // keep track of the number of times we've seen this vertex
                vertexDegree[ indexToVertex[ *i ] ]++;
             }
-   
+
          } // end loop over polygon vertices
-   
+
          // check that all vertices of the current polygon are distinct
          Size degree = p->size(); // number of vertices in this polygon
          if( polygonIndices.size() < degree )
@@ -135,22 +135,22 @@ namespace CMU462 {
             cerr << ")" << endl;
             exit( 1 );
          } // end check that polygon vertices are distinct
-   
+
       } // end basic sanity checks on input
-   
+
       // The number of vertices in the mesh is the
       // number of unique indices seen in the input.
       Size nVertices = indexToVertex.size();
-   
+
       // The number of faces is just the number of polygons in the input.
       Size nFaces = polygons.size();
       faces.resize( nFaces ); // allocate storage for faces in our new mesh
-   
+
       // We will store a map from ordered pairs of vertex indices to
       // the corresponding halfedge object in our new (halfedge) mesh;
       // this map gets constructed during the next loop over polygons.
       map<IndexPair,HalfedgeIter> pairToHalfedge;
-   
+
       // Next, we actually build the halfedge connectivity by again looping over polygons
       PolygonListCIter p;
       FaceIter f;
@@ -160,7 +160,7 @@ namespace CMU462 {
       {
          vector<HalfedgeIter> faceHalfedges; // cyclically ordered list of the half edges of this face
          Size degree = p->size(); // number of vertices in this polygon
-   
+
          // loop over the halfedges of this face (equivalently, the ordered pairs of consecutive vertices)
          for( Index i = 0; i < degree; i++ )
          {
@@ -168,7 +168,7 @@ namespace CMU462 {
             Index b = (*p)[(i+1)%degree]; // next index, in cyclic order
             IndexPair ab( a, b );
             HalfedgeIter hab;
-   
+
             // check if this halfedge already exists; if so, we have a problem!
             if( pairToHalfedge.find( ab ) != pairToHalfedge.end() )
             {
@@ -183,20 +183,20 @@ namespace CMU462 {
                // so, we point this vertex pair to a new halfedge
                hab = newHalfedge();
                pairToHalfedge[ab] = hab;
-   
+
                // link the new halfedge to its face
                hab->face() = f;
                hab->face()->halfedge() = hab;
-   
+
                // also link it to its starting vertex
                hab->vertex() = indexToVertex[a];
                hab->vertex()->halfedge() = hab;
-   
+
                // keep a list of halfedges in this face, so that we can later
                // link them together in a loop (via their "next" pointers)
                faceHalfedges.push_back( hab );
             }
-   
+
             // Also, check if the twin of this halfedge has already been constructed (during
             // construction of a different face).  If so, link the twins together and allocate
             // their shared halfedge.  By the end of this pass over polygons, the only halfedges
@@ -206,11 +206,11 @@ namespace CMU462 {
             if( iba != pairToHalfedge.end() )
             {
                HalfedgeIter hba = iba->second;
-   
+
                // link the twins
                hab->twin() = hba;
                hba->twin() = hab;
-   
+
                // allocate and link their edge
                EdgeIter e = newEdge();
                hab->edge() = e;
@@ -225,9 +225,9 @@ namespace CMU462 {
                // it will be linked to a boundary face in the next pass.
                hab->twin() = halfedges.end();
             }
-   
+
          } // end loop over the current polygon's halfedges
-   
+
          // Now that all the halfedges of this face have been allocated,
          // we can link them together via their "next" pointers.
          for( Index i = 0; i < degree; i++ )
@@ -235,9 +235,9 @@ namespace CMU462 {
             Index j = (i+1) % degree; // index of the next halfedge, in cyclic order
             faceHalfedges[i]->next() = faceHalfedges[j];
          }
-   
+
       } // done building basic halfedge connectivity
-   
+
       // For each vertex on the boundary, advance its halfedge pointer to one that is also on the boundary.
       for( VertexIter v = verticesBegin(); v != verticesEnd(); v++ )
       {
@@ -250,13 +250,13 @@ namespace CMU462 {
                v->halfedge() = h;
                break;
             }
-   
+
             h = h->twin()->next();
          }
          while( h != v->halfedge() ); // end loop over halfedges around vertex
-   
+
       } // done advancing halfedge pointers for boundary vertices
-   
+
       // Next we construct new faces for each boundary component.
       for( HalfedgeIter h = halfedgesBegin(); h != halfedgesEnd(); h++ ) // loop over all halfedges
       {
@@ -273,7 +273,7 @@ namespace CMU462 {
          {
             FaceIter b = newBoundary();
             vector<HalfedgeIter> boundaryHalfedges; // keep a list of halfedges along the boundary, so we can link them together
-   
+
             // We now need to walk around the boundary, creating new
             // halfedges and edges along the boundary loop as we go.
             HalfedgeIter i = h;
@@ -286,13 +286,13 @@ namespace CMU462 {
                t->twin() = i;
                t->face() = b;
                t->vertex() = i->next()->vertex();
-   
+
                // create the shared edge
                EdgeIter e = newEdge();
                e->halfedge() = i;
                i->edge() = e;
                t->edge() = e;
-   
+
                // Advance i to the next halfedge along the current boundary loop
                // by walking around its target vertex and stopping as soon as we
                // find a halfedge that does not yet have a twin defined.
@@ -305,7 +305,7 @@ namespace CMU462 {
                }
             }
             while( i != h );
-   
+
             // The only pointers that still need to be set are the "next" pointers of the twins;
             // these we can set from the list of boundary halfedges, but we must use the opposite
             // order from the order in the list, since the orientation of the boundary loop is
@@ -316,17 +316,17 @@ namespace CMU462 {
                Index q = (p-1+degree) % degree;
                boundaryHalfedges[p]->next() = boundaryHalfedges[q];
             }
-   
+
          } // end construction of one of the boundary loops
-   
+
          // Note that even though we are looping over all halfedges, we will still construct
          // the appropriate number of boundary loops (and not, say, one loop per boundary
          // halfedge).  The reason is that as we continue to iterate through halfedges, we
          // check whether their twin has been assigned, and since new twins may have been
          // assigned earlier in this loop, we will end up skipping many subsequent halfedges.
-   
+
       } // done adding "virtual" faces corresponding to boundary loops
-   
+
       // To make later traversal of the mesh easier, we will now advance the halfedge
       // associated with each vertex such that it refers to the *first* non-boundary
       // halfedge, rather than the last one.
@@ -334,7 +334,7 @@ namespace CMU462 {
       {
          v->halfedge() = v->halfedge()->twin()->next();
       }
-      
+
       // Finally, we check that all vertices are manifold.
       for( VertexIter v = vertices.begin(); v != vertices.end(); v++ )
       {
@@ -345,7 +345,7 @@ namespace CMU462 {
             cerr << "Error converting polygons to halfedge mesh: some vertices are not referenced by any polygon." << endl;
             exit( 1 );
          }
-   
+
          // Next, check that the number of halfedges emanating from this vertex in our half
          // edge data structure equals the number of polygons containing this vertex, which
          // we counted during our first pass over the mesh.  If not, then our vertex is not
@@ -361,14 +361,14 @@ namespace CMU462 {
             h = h->twin()->next();
          }
          while( h != v->halfedge() );
-   
+
          if( count != vertexDegree[v] )
          {
             cerr << "Error converting polygons to halfedge mesh: at least one of the vertices is nonmanifold." << endl;
             exit( 1 );
          }
       } // end loop over vertices
-   
+
       // Now that we have the connectivity, we copy the list of vertex
       // positions into member variables of the individual vertices.
       if( vertexPositions.size() != vertices.size() )
@@ -385,12 +385,12 @@ namespace CMU462 {
       {
          // grab a pointer to the vertex associated with the current key (i.e., the current index)
          VertexIter v = e->second;
-   
+
          // set the position of this vertex to the corresponding position in the input
          v->position = vertexPositions[ i ];
          i++;
       }
-   
+
    } // end HalfedgeMesh::build()
 
    const HalfedgeMesh& HalfedgeMesh :: operator=( const HalfedgeMesh& mesh )
@@ -424,7 +424,7 @@ namespace CMU462 {
       for(     EdgeCIter e =          mesh.edgesBegin(); e !=      mesh.edgesEnd(); e++ )     edgeOldToNew[ e ] =      edges.insert(      edges.end(), *e );
       for(     FaceCIter f =          mesh.facesBegin(); f !=      mesh.facesEnd(); f++ )     faceOldToNew[ f ] =      faces.insert(      faces.end(), *f );
       for(     FaceCIter b =     mesh.boundariesBegin(); b != mesh.boundariesEnd(); b++ )     faceOldToNew[ b ] = boundaries.insert( boundaries.end(), *b );
-   
+
       // "Search and replace" old pointers with new ones.
       for( HalfedgeIter he = halfedgesBegin(); he != halfedgesEnd(); he++ )
       {
@@ -438,7 +438,7 @@ namespace CMU462 {
       for(   EdgeIter e =      edgesBegin(); e !=      edgesEnd(); e++ ) e->halfedge() = halfedgeOldToNew[ e->halfedge() ];
       for(   FaceIter f =      facesBegin(); f !=      facesEnd(); f++ ) f->halfedge() = halfedgeOldToNew[ f->halfedge() ];
       for(   FaceIter b = boundariesBegin(); b != boundariesEnd(); b++ ) b->halfedge() = halfedgeOldToNew[ b->halfedge() ];
-   
+
       // Return a reference to the new mesh.
       return *this;
    }

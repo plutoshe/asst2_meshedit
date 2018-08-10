@@ -15,7 +15,99 @@ namespace CMU462
       // TODO This method should split the given edge and return an iterator to the newly inserted vertex.
       // TODO The halfedge of this vertex should point along the edge that was split, rather than the new edges.
 
-			return VertexIter();
+      
+      // add three edges
+      // recaculate the 4 part of the m esh
+
+      // ## calculate the pos of new vertex
+      // get half edge
+      HalfedgeIter h = e0->halfedge();
+      if (h->isBoundary()) {
+         return VertexIter();
+      }
+
+      // get related two vertex
+      VertexIter x0 = h->vertex();
+      VertexIter x1 = h->twin()->vertex();
+
+      HalfedgeIter first_h = h->next();
+      HalfedgeIter first_h_twin = h->twin()->next();
+      
+
+      // change vertex and vertex degree
+         // vertexDegree[h->vertex()]--;
+         // vertexDegree[h_twin->vertex()]--;
+
+      // h->vertex()->halfedge() = first_h_twin;
+      // h->twin()->vertex()->halfedge() = first_h;
+
+      // calculate new vertex position
+      VertexIter midpoint = newVertex();
+      midpoint->position = 0.5 * (x0->position + x1->position);
+
+      // ## add new edges and related halfedges
+
+      std::vector<HalfedgeIter> adjacent_halfedges;
+      adjacent_halfedges.empty();
+      adjacent_halfedges.push_back(h->next());
+      adjacent_halfedges.push_back(h->next()->next());
+      adjacent_halfedges.push_back(h->twin()->next());
+      adjacent_halfedges.push_back(h->twin()->next()->next());
+
+      std::vector<VertexIter> adjacent_vertices;
+      adjacent_vertices.empty();
+      for (int i = 0; i < adjacent_halfedges.size(); i++) 
+         adjacent_vertices.push_back(adjacent_halfedges[i]->vertex());
+      
+      std::vector<FaceIter> related_faces;      
+      related_faces.push_back(h->face());
+      related_faces.push_back(h->twin()->face());
+      for (int i = 0; i < 2; i++) related_faces.push_back(newFace());
+
+      std::vector<EdgeIter> related_edges;
+      related_edges.empty();
+      related_edges.push_back(e0);
+      for (int i = 0; i < 3; i++) related_edges.push_back(newEdge());
+
+      std::vector<HalfedgeIter> related_halfedges;
+      related_halfedges.empty();
+      related_halfedges.push_back(h);
+      related_halfedges.push_back(h->twin());
+      for (int i = 0; i < 6; i++) related_halfedges.push_back(newHalfedge());
+
+      // ## new face
+      // FaceIter midpoint_face = newFace();
+      // midpoint_face->halfedge() = related_halfedges[1];
+      midpoint->halfedge() = related_halfedges[0];
+
+      for (int i = 0; i < 4; i++) {
+         related_halfedges[i * 2]->vertex() = midpoint;
+         related_halfedges[i * 2 + 1]->vertex() = adjacent_vertices[i];
+
+         related_halfedges[i * 2]->twin() = related_halfedges[i * 2 + 1];
+         related_halfedges[i * 2 + 1]->twin() = related_halfedges[i * 2];
+
+         related_halfedges[i * 2]->edge() = related_edges[i];
+         related_halfedges[i * 2 + 1]->edge() = related_edges[i];
+
+         related_halfedges[i * 2]->next() = adjacent_halfedges[i];
+         related_halfedges[i * 2 + 1]->next() = related_halfedges[((i + 3) % 4) * 2];
+         adjacent_halfedges[(i + 3) % 4]->next() = related_halfedges[i * 2 + 1];
+
+         related_faces[i]->halfedge() = related_halfedges[i * 2];
+         related_halfedges[i * 2]->face() = related_faces[i];
+         adjacent_halfedges[i]->face() = related_faces[i];
+         related_halfedges[((i + 1) % 4) * 2 + 1]->face() = related_faces[i];
+         
+         adjacent_vertices[i]->halfedge() = adjacent_halfedges[i]; //related_halfedges[i * 2 + 1];
+
+         related_edges[i]->halfedge() = related_halfedges[i * 2];
+      }
+
+
+
+
+      return midpoint;
 	 }
 
    VertexIter HalfedgeMesh::collapseEdge( EdgeIter e )
@@ -29,7 +121,47 @@ namespace CMU462
    {
       // TODO This method should flip the given edge and return an iterator to the flipped edge.
 
-			return EdgeIter();
+      // get related halfedges
+      HalfedgeIter h = e0->halfedge();
+      if (h->isBoundary()) {
+         return e0;
+      }
+      HalfedgeIter first_h = h->next();
+      HalfedgeIter second_h = first_h->next();
+
+      HalfedgeIter h_twin = h->twin();
+      HalfedgeIter first_h_twin = h_twin->next();
+      HalfedgeIter second_h_twin = first_h_twin->next();
+
+
+      // change vertex and vertex degree
+         // vertexDegree[h->vertex()]--;
+         // vertexDegree[h_twin->vertex()]--;
+
+      h->vertex()->halfedge() = first_h_twin;
+      h->face()->halfedge() = first_h_twin;
+      h_twin->vertex()->halfedge() = first_h;
+      h_twin->face()->halfedge() = first_h;
+
+      h->vertex() = first_h->next()->vertex();
+      h_twin->vertex() = first_h_twin->next()->vertex();
+         // vertexDegree[h->vertex()]++;
+         // vertexDegree[h_twin->vertex()]++;
+
+
+      // change next
+      h->next() = second_h_twin;
+      second_h_twin->next() = first_h;
+      first_h->next() = h;
+
+      h_twin->next() = second_h;
+      second_h->next() = first_h_twin;
+      first_h_twin->next() = h_twin;
+
+      printf("!!!!\n");
+      printf("%p\n", &e0->halfedge()->vertex());
+      return EdgeIter();
+
    }
 
    void MeshResampler::upsample( HalfedgeMesh& mesh )
